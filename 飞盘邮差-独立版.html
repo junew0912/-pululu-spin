@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飞盘邮差 · 小卖屉儿</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #faf7f2; font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .frisbee-wrap {
+    color: #3a322e;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 20px 10px 40px; max-width: 480px; margin: 0 auto; min-height: 100vh;
+  }
+  .f-header { text-align: center; margin-bottom: 6px; }
+  .f-header h2 { font-size: 1.5rem; font-weight: 700; color: #4a3f38; letter-spacing: 0.04em; }
+  .f-header .f-sub { font-size: 0.8rem; color: #999; margin-top: 2px; }
+  .f-stage { position: relative; width: min(300px, 80vw); height: min(300px, 80vw); margin: 16px auto; }
+  canvas#frisbeeCanvas { width: 100%; height: 100%; cursor: pointer; border-radius: 50%; transition: filter 0.3s; }
+  canvas#frisbeeCanvas:hover { filter: drop-shadow(0 6px 18px rgba(232,129,91,0.25)); }
+  canvas#frisbeeCanvas.spinning { cursor: default; }
+  .f-hint { position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%); font-size: 0.75rem; color: #bbb; white-space: nowrap; }
+  .f-result {
+    width: 100%; background: #fffef9; border-radius: 14px; padding: 20px 18px;
+    margin: 10px 0; box-shadow: 0 2px 12px rgba(0,0,0,0.05); border: 1px solid #eae5dd;
+    display: none;
+  }
+  .f-result.show { display: block; animation: f-fadeUp 0.4s ease; }
+  @keyframes f-fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .f-city { font-size: 1.3rem; font-weight: 700; color: #e8815b; display: flex; align-items: center; gap: 8px; }
+  .f-city .f-flag { font-size: 1.6rem; }
+  .f-pair { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .f-org {
+    flex: 1; min-width: 130px; background: #faf7f2; border-radius: 10px;
+    padding: 12px; text-align: center; font-size: 0.8rem; line-height: 1.5;
+  }
+  .f-org .f-icon { font-size: 1.4rem; margin-bottom: 4px; }
+  .f-org .f-name { font-weight: 600; }
+  .f-org .f-role { color: #999; font-size: 0.7rem; }
+  .f-between { display: flex; align-items: center; font-size: 1.4rem; color: #ccc; }
+  .f-dist { margin-top: 8px; font-size: 0.7rem; color: #aaa; text-align: center; }
+  .f-history { width: 100%; margin-top: 10px; }
+  .f-history h3 { font-size: 0.8rem; color: #999; margin-bottom: 6px; font-weight: 500; border-bottom: 1px solid #eae5dd; padding-bottom: 5px; }
+  .f-entry { display: flex; align-items: center; gap: 6px; padding: 6px 8px; font-size: 0.75rem; color: #777; border-bottom: 1px dotted #eee; }
+  .f-num {
+    background: #eae5dd; border-radius: 50%; width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center; font-size: 0.65rem;
+    font-weight: 600; color: #999; flex-shrink: 0;
+  }
+  .f-conn { color: #e8815b; }
+  .f-footer { font-size: 0.65rem; color: #ccc; text-align: center; padding-top: 16px; }
+  .f-links { text-align: center; margin-top: 8px; font-size: 0.7rem; }
+  .f-links a { color: #c4a265; text-decoration: none; }
+  @media (max-width: 400px) {
+    .f-pair { flex-direction: column; }
+    .f-between { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="frisbee-wrap">
+
+  <div class="f-header">
+    <h2>🥏 飞盘邮差</h2>
+    <div class="f-sub">转一次 · 连接一老一小</div>
+  </div>
+
+  <div class="f-stage">
+    <canvas id="frisbeeCanvas" width="600" height="600"></canvas>
+    <div class="f-hint">👆 点飞盘，转起来</div>
+  </div>
+
+  <div class="f-result" id="f-result">
+    <div class="f-city"><span class="f-flag" id="f-destFlag">🌍</span><span id="f-destCity">—</span></div>
+    <div class="f-pair">
+      <div class="f-org"><div class="f-icon">🧒</div><div class="f-name" id="f-kg">—</div><div class="f-role">幼儿园 · 孩子们画卡片</div></div>
+      <div class="f-between">↔</div>
+      <div class="f-org"><div class="f-icon">👵</div><div class="f-name" id="f-nh">—</div><div class="f-role">养老院 · 老人们回卡片</div></div>
+    </div>
+    <div class="f-dist" id="f-dist"></div>
+  </div>
+
+  <div class="f-history" id="f-historyWrap" style="display:none">
+    <h3>📜 飞盘飞行记录</h3>
+    <div id="f-historyList"></div>
+  </div>
+
+  <div class="f-footer">噗噜噜 · 小卖屉儿全球策展小馆</div>
+  <div class="f-links">
+    <a href="https://mattichildrenmuseum.org" target="_blank">mattichildrenmuseum.org</a>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const locations = [
+    { city:"黄山", flag:"🇨🇳", kg:"黄山小卖屉儿幼儿园", nh:"黄山颐养中心", dist:12 },
+    { city:"蒙彼利埃", flag:"🇫🇷", kg:"École Maternelle Antigone", nh:"Maison de Retraite Les Pins", dist:8 },
+    { city:"旧金山", flag:"🇺🇸", kg:"Sunset Co-op Preschool", nh:"Golden Gate Senior Home", dist:5 },
+    { city:"深圳", flag:"🇨🇳", kg:"南山区蓓蕾幼儿园", nh:"南山长者之家", dist:6 },
+    { city:"京都", flag:"🇯🇵", kg:"京都こども園", nh:"京都やすらぎの里", dist:9 },
+    { city:"清迈", flag:"🇹🇭", kg:"Chiang Mai Kindergarten", nh:"Baan Waan Elder Home", dist:14 },
+    { city:"内罗毕", flag:"🇰🇪", kg:"Kibera Kids Preschool", nh:"Nyumba ya Wazee", dist:7 },
+    { city:"墨尔本", flag:"🇦🇺", kg:"Fitzroy Early Learning", nh:"Carlton Gardens Aged Care", dist:4 },
+    { city:"圣地亚哥", flag:"🇨🇱", kg:"Jardín Infantil Los Andes", nh:"Hogar de Ancianos San José", dist:11 },
+    { city:"克拉科夫", flag:"🇵🇱", kg:"Przedszkole Korczak", nh:"Dom Seniora Na Plantach", dist:6 },
+    { city:"雷克雅未克", flag:"🇮🇸", kg:"Leikskóli Sóltún", nh:"Droplaug Dvalarheimili", dist:3 },
+    { city:"开普敦", flag:"🇿🇦", kg:"Khayelitsha ECD Centre", nh:"Ikamva Labantu Elders", dist:10 }
+  ];
+
+  let spinHistory=[], isSpinning=false;
+  const canvas=document.getElementById("frisbeeCanvas"), ctx=canvas.getContext("2d");
+  const DPR=Math.min(window.devicePixelRatio||1,2), SIZE=300;
+  canvas.width=SIZE*DPR; canvas.height=SIZE*DPR; ctx.scale(DPR,DPR);
+  const CX=SIZE/2, CY=SIZE/2, R=120;
+  const COLORS=["#e8815b","#f0b07a","#f4d35e","#8b9e7e","#6b9fbf","#c38d9e"];
+
+  function drawFrisbee(angle){
+    ctx.clearRect(0,0,SIZE,SIZE);
+    ctx.save(); ctx.shadowColor="rgba(0,0,0,0.08)"; ctx.shadowBlur=18; ctx.shadowOffsetY=3;
+    ctx.beginPath(); ctx.arc(CX,CY,R,0,Math.PI*2); ctx.fillStyle="#fef9f0"; ctx.fill();
+    ctx.strokeStyle="#e0d5c8"; ctx.lineWidth=2.5; ctx.stroke(); ctx.restore();
+
+    for(let i=0;i<8;i++){
+      let a0=angle+(i*Math.PI*2)/8, a1=a0+Math.PI*2/8;
+      ctx.beginPath(); ctx.moveTo(CX,CY); ctx.arc(CX,CY,R-4,a0,a1); ctx.closePath();
+      ctx.fillStyle=COLORS[i%6]; ctx.globalAlpha=0.28; ctx.fill(); ctx.globalAlpha=1;
+    }
+    ctx.beginPath(); ctx.arc(CX,CY,R,0,Math.PI*2); ctx.strokeStyle="#e8815b"; ctx.lineWidth=3.5; ctx.stroke();
+    ctx.beginPath(); ctx.arc(CX,CY,R*0.42,0,Math.PI*2); ctx.strokeStyle="#d4c8b8"; ctx.lineWidth=1.2; ctx.stroke();
+
+    ctx.save(); ctx.translate(CX,CY); ctx.rotate(-angle*0.3);
+    ctx.font="bold 18px 'Noto Sans SC',sans-serif"; ctx.fillStyle="#4a3f38"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("噗噜噜",0,-3); ctx.font="10px 'Noto Sans SC',sans-serif"; ctx.fillStyle="#bbb"; ctx.fillText("MATII",0,13);
+    ctx.restore();
+
+    for(let i=0;i<14;i++){
+      let a=angle+(i*Math.PI*2)/14, x=CX+Math.cos(a)*(R-12), y=CY+Math.sin(a)*(R-12);
+      ctx.beginPath(); ctx.arc(x,y,2.2,0,Math.PI*2); ctx.fillStyle=i%2===0?"#e8815b":"#f0b07a"; ctx.fill();
+    }
+  }
+
+  let angle=0;
+  function animate(){ if(isSpinning)angle+=0.22; else angle+=0.003; drawFrisbee(angle); requestAnimationFrame(animate); }
+  requestAnimationFrame(animate);
+
+  canvas.addEventListener("click",()=>{
+    if(isSpinning)return; isSpinning=true; canvas.classList.add("spinning");
+    document.querySelector(".f-hint").textContent="飞盘中…… 噗噜噜……";
+    const dur=1800+Math.random()*1200, startAngle=angle, startTime=performance.now();
+    const loc=locations[Math.floor(Math.random()*locations.length)];
+    function spinLoop(ts){
+      let p=Math.min((ts-startTime)/dur,1), eased=1-Math.pow(1-p,3);
+      angle=startAngle+eased*(Math.PI*6+Math.random()*2);
+      if(p<1){ requestAnimationFrame(spinLoop); return; }
+      isSpinning=false; canvas.classList.remove("spinning");
+      document.querySelector(".f-hint").textContent="👆 再转一次";
+      spinHistory.unshift(loc); if(spinHistory.length>12)spinHistory.pop();
+      document.getElementById("f-destFlag").textContent=loc.flag;
+      document.getElementById("f-destCity").textContent=loc.city;
+      document.getElementById("f-kg").textContent=loc.kg;
+      document.getElementById("f-nh").textContent=loc.nh;
+      document.getElementById("f-dist").textContent="📍 两机构相距约 "+loc.dist+" 公里 · 卡片包准备寄出 ✉️";
+      let r=document.getElementById("f-result"); r.classList.remove("show"); void r.offsetWidth; r.classList.add("show");
+      let hw=document.getElementById("f-historyWrap"), hl=document.getElementById("f-historyList");
+      if(!spinHistory.length){ hw.style.display="none"; return; }
+      hw.style.display="block";
+      hl.innerHTML=spinHistory.map((l,i)=>`<div class="f-entry"><span class="f-num">${spinHistory.length-i}</span><span>${l.flag} ${l.city}</span><span class="f-conn">${l.kg} ↔ ${l.nh}</span></div>`).join("");
+    }
+    requestAnimationFrame(spinLoop);
+  });
+})();
+</script>
+</body>
+</html>
